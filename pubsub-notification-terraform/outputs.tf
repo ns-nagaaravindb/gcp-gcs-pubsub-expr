@@ -1,0 +1,40 @@
+output "bucket_name" {
+  description = "Name of the created GCS bucket"
+  value       = google_storage_bucket.main.name
+}
+
+output "bucket_url" {
+  description = "URL of the created GCS bucket"
+  value       = google_storage_bucket.main.url
+}
+
+output "topic_name" {
+  description = "Name of the created Pub/Sub topic"
+  value       = google_pubsub_topic.main.name
+}
+
+output "topic_id" {
+  description = "ID of the created Pub/Sub topic"
+  value       = google_pubsub_topic.main.id
+}
+
+output "subscription_name" {
+  description = "Name of the created Pub/Sub subscription"
+  value       = google_pubsub_subscription.main.name
+}
+
+output "subscription_id" {
+  description = "ID of the created Pub/Sub subscription"
+  value       = google_pubsub_subscription.main.id
+}
+
+output "notification_id" {
+  description = "ID of the created GCS notification"
+  value       = google_storage_notification.main.id
+}
+
+output "gcs_service_account_email" {
+  description = "Email address of the GCS service account"
+  value       = data.google_storage_project_service_account.gcs_account.email_address
+}
+

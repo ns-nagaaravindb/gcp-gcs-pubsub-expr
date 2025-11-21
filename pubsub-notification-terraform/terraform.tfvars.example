@@ -1,0 +1,14 @@
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+# Optional: Override defaults
+# bucket_name = "test-dp-gcspubsub-bucket"
+# topic_name  = "test-dp-gcspubsub-bucket"
+# force_destroy = false
+# enable_versioning = false
+
+labels = {
+  environment = "test"
+  managed_by  = "terraform"
+}
+
