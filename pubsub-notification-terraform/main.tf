@@ -87,3 +87,48 @@ resource "google_storage_notification" "main" {
   depends_on = [google_pubsub_topic_iam_member.gcs_publisher]
 }
 
+# Cross-project consumer setup (optional)
+# Provider for consumer project
+provider "google" {
+  alias   = "consumer"
+  project = var.consumer_project_id != "" ? var.consumer_project_id : var.project_id
+  region  = var.region
+}
+
+# Cross-project Pub/Sub Subscription (in consumer project)
+resource "google_pubsub_subscription" "consumer" {
+  count    = var.create_cross_project_subscription && var.consumer_project_id != "" ? 1 : 0
+  provider = google.consumer
+
+  name  = "${var.topic_name}-consumer-subscription"
+  topic = google_pubsub_topic.main.id
+
+  ack_deadline_seconds = var.ack_deadline_seconds
+
+  expiration_policy {
+    ttl = var.subscription_ttl
+  }
+
+  retry_policy {
+    minimum_backoff = var.minimum_backoff
+    maximum_backoff = var.maximum_backoff
+  }
+
+  enable_message_ordering = false
+}
+
+# IAM: Grant consumer project subscription access to the topic
+resource "google_pubsub_topic_iam_member" "consumer_subscriber" {
+  count  = var.create_cross_project_subscription && var.consumer_project_id != "" ? 1 : 0
+  topic  = google_pubsub_topic.main.name
+  role   = "roles/pubsub.subscriber"
+  member = "serviceAccount:service-${data.google_project.consumer[0].number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+# Data source to get consumer project number
+data "google_project" "consumer" {
+  count      = var.create_cross_project_subscription && var.consumer_project_id != "" ? 1 : 0
+  provider   = google.consumer
+  project_id = var.consumer_project_id
+}
+

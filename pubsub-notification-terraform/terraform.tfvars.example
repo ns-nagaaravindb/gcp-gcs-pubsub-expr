@@ -12,3 +12,8 @@ labels = {
   managed_by  = "terraform"
 }
 
+# Cross-project consumer configuration (optional)
+# Enable this to create a subscription in a different project
+# create_cross_project_subscription = true
+# consumer_project_id = "your-consumer-project-id"
+
