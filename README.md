@@ -1,5 +1,15 @@
 # GCS Pub/Sub Notification Project
 
+## ⭐ NEW: Cross-Project Consumer Support
+
+This project now supports **cross-project Pub/Sub consumers**! You can now:
+- Create GCS bucket and Pub/Sub topic in one project (Publisher)
+- Consume notifications in a different project (Consumer)
+
+See [Cross-Project Setup Guide](pubsub-notification-terraform/CROSS_PROJECT_SETUP.md) for details.
+
+---
+
 export projectID="data-qe-da7e1252"
 
 Before terraform destroy 

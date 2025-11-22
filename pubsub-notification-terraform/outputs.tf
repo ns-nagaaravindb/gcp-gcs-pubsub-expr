@@ -38,3 +38,18 @@ output "gcs_service_account_email" {
   value       = data.google_storage_project_service_account.gcs_account.email_address
 }
 
+output "consumer_subscription_name" {
+  description = "Name of the consumer Pub/Sub subscription (cross-project)"
+  value       = var.create_cross_project_subscription && var.consumer_project_id != "" ? google_pubsub_subscription.consumer[0].name : null
+}
+
+output "consumer_subscription_id" {
+  description = "ID of the consumer Pub/Sub subscription (cross-project)"
+  value       = var.create_cross_project_subscription && var.consumer_project_id != "" ? google_pubsub_subscription.consumer[0].id : null
+}
+
+output "consumer_project_id" {
+  description = "Consumer project ID"
+  value       = var.consumer_project_id != "" ? var.consumer_project_id : var.project_id
+}
+

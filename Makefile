@@ -4,12 +4,14 @@
 
 # Configuration
 PROJECT_ID ?= $(shell gcloud config get-value project 2>/dev/null)
+CONSUMER_PROJECT_ID ?= compute-k8s-qe
 BUCKET_NAME ?= test-dp-gcspubsub-bucket
 TOPIC_NAME ?= test-dp-gcspubsub-bucket
 REGION ?= us-central1
 TERRAFORM_DIR = pubsub-notification-terraform
 APP_DIR = app
 APP_BINARY = gcs-pubsub-app
+CREATE_CROSS_PROJECT ?= true
 
 # Colors for output
 GREEN = \033[0;32m
@@ -47,11 +49,22 @@ terraform-plan: terraform-init ## Plan Terraform changes
 		exit 1; \
 	fi
 	@echo "$(GREEN)Planning Terraform changes...$(NC)"
-	cd $(TERRAFORM_DIR) && terraform plan \
-		-var="project_id=$(PROJECT_ID)" \
-		-var="region=$(REGION)" \
-		-var="bucket_name=$(BUCKET_NAME)" \
-		-var="topic_name=$(TOPIC_NAME)"
+	@if [ -n "$(CONSUMER_PROJECT_ID)" ] && [ "$(CREATE_CROSS_PROJECT)" = "true" ]; then \
+		echo "$(YELLOW)Cross-project mode: Consumer project $(CONSUMER_PROJECT_ID)$(NC)"; \
+		cd $(TERRAFORM_DIR) && terraform plan \
+			-var="project_id=$(PROJECT_ID)" \
+			-var="region=$(REGION)" \
+			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="topic_name=$(TOPIC_NAME)" \
+			-var="consumer_project_id=$(CONSUMER_PROJECT_ID)" \
+			-var="create_cross_project_subscription=true"; \
+	else \
+		cd $(TERRAFORM_DIR) && terraform plan \
+			-var="project_id=$(PROJECT_ID)" \
+			-var="region=$(REGION)" \
+			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="topic_name=$(TOPIC_NAME)"; \
+	fi
 
 terraform-apply: terraform-init ## Apply Terraform configuration
 	@if [ -z "$(PROJECT_ID)" ]; then \
@@ -59,12 +72,24 @@ terraform-apply: terraform-init ## Apply Terraform configuration
 		exit 1; \
 	fi
 	@echo "$(GREEN)Applying Terraform configuration...$(NC)"
-	cd $(TERRAFORM_DIR) && terraform apply \
-		-var="project_id=$(PROJECT_ID)" \
-		-var="region=$(REGION)" \
-		-var="bucket_name=$(BUCKET_NAME)" \
-		-var="topic_name=$(TOPIC_NAME)" \
-		-auto-approve
+	@if [ -n "$(CONSUMER_PROJECT_ID)" ] && [ "$(CREATE_CROSS_PROJECT)" = "true" ]; then \
+		echo "$(YELLOW)Cross-project mode: Consumer project $(CONSUMER_PROJECT_ID)$(NC)"; \
+		cd $(TERRAFORM_DIR) && terraform apply \
+			-var="project_id=$(PROJECT_ID)" \
+			-var="region=$(REGION)" \
+			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="topic_name=$(TOPIC_NAME)" \
+			-var="consumer_project_id=$(CONSUMER_PROJECT_ID)" \
+			-var="create_cross_project_subscription=true" \
+			-auto-approve; \
+	else \
+		cd $(TERRAFORM_DIR) && terraform apply \
+			-var="project_id=$(PROJECT_ID)" \
+			-var="region=$(REGION)" \
+			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="topic_name=$(TOPIC_NAME)" \
+			-auto-approve; \
+	fi
 	@echo "$(GREEN)✓ Infrastructure created successfully$(NC)"
 
 terraform-destroy: terraform-init ## Destroy Terraform infrastructure
@@ -73,12 +98,23 @@ terraform-destroy: terraform-init ## Destroy Terraform infrastructure
 		exit 1; \
 	fi
 	@echo "$(YELLOW)Destroying Terraform infrastructure...$(NC)"
-	cd $(TERRAFORM_DIR) && terraform destroy \
-		-var="project_id=$(PROJECT_ID)" \
-		-var="region=$(REGION)" \
-		-var="bucket_name=$(BUCKET_NAME)" \
-		-var="topic_name=$(TOPIC_NAME)" \
-		-auto-approve
+	@if [ -n "$(CONSUMER_PROJECT_ID)" ] && [ "$(CREATE_CROSS_PROJECT)" = "true" ]; then \
+		cd $(TERRAFORM_DIR) && terraform destroy \
+			-var="project_id=$(PROJECT_ID)" \
+			-var="region=$(REGION)" \
+			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="topic_name=$(TOPIC_NAME)" \
+			-var="consumer_project_id=$(CONSUMER_PROJECT_ID)" \
+			-var="create_cross_project_subscription=true" \
+			-auto-approve; \
+	else \
+		cd $(TERRAFORM_DIR) && terraform destroy \
+			-var="project_id=$(PROJECT_ID)" \
+			-var="region=$(REGION)" \
+			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="topic_name=$(TOPIC_NAME)" \
+			-auto-approve; \
+	fi
 	@echo "$(GREEN)✓ Infrastructure destroyed$(NC)"
 
 terraform-output: terraform-init ## Show Terraform outputs
@@ -110,11 +146,21 @@ app-listen: app-build ## Listen for Pub/Sub notifications
 		exit 1; \
 	fi
 	@echo "$(GREEN)Listening for notifications (Press Ctrl+C to stop)...$(NC)"
-	./$(APP_BINARY) \
-		-mode=listen \
-		-project=$(PROJECT_ID) \
-		-bucket=$(BUCKET_NAME) \
-		-topic=$(TOPIC_NAME)
+	@if [ -n "$(CONSUMER_PROJECT_ID)" ]; then \
+		echo "$(YELLOW)Consumer project: $(CONSUMER_PROJECT_ID)$(NC)"; \
+		./$(APP_BINARY) \
+			-mode=listen \
+			-project=$(PROJECT_ID) \
+			-consumer-project=$(CONSUMER_PROJECT_ID) \
+			-bucket=$(BUCKET_NAME) \
+			-topic=$(TOPIC_NAME); \
+	else \
+		./$(APP_BINARY) \
+			-mode=listen \
+			-project=$(PROJECT_ID) \
+			-bucket=$(BUCKET_NAME) \
+			-topic=$(TOPIC_NAME); \
+	fi
 
 app-test: app-build ## Create file and listen for notification
 	@if [ -z "$(PROJECT_ID)" ]; then \
@@ -122,13 +168,25 @@ app-test: app-build ## Create file and listen for notification
 		exit 1; \
 	fi
 	@echo "$(GREEN)Creating file and listening for notification...$(NC)"
-	./$(APP_BINARY) \
-		-mode=both \
-		-project=$(PROJECT_ID) \
-		-bucket=$(BUCKET_NAME) \
-		-topic=$(TOPIC_NAME) \
-		-file=test-$(shell date +%s).txt \
-		-content="Test file created at $(shell date)"
+	@if [ -n "$(CONSUMER_PROJECT_ID)" ]; then \
+		echo "$(YELLOW)Consumer project: $(CONSUMER_PROJECT_ID)$(NC)"; \
+		./$(APP_BINARY) \
+			-mode=both \
+			-project=$(PROJECT_ID) \
+			-consumer-project=$(CONSUMER_PROJECT_ID) \
+			-bucket=$(BUCKET_NAME) \
+			-topic=$(TOPIC_NAME) \
+			-file=test-$(shell date +%s).txt \
+			-content="Test file created at $(shell date)"; \
+	else \
+		./$(APP_BINARY) \
+			-mode=both \
+			-project=$(PROJECT_ID) \
+			-bucket=$(BUCKET_NAME) \
+			-topic=$(TOPIC_NAME) \
+			-file=test-$(shell date +%s).txt \
+			-content="Test file created at $(shell date)"; \
+	fi
 
 # Cleanup targets
 clean: ## Clean build artifacts
@@ -148,10 +206,69 @@ demo: check-deps terraform-apply app-test ## Full demo: create infra, create fil
 info: ## Show current configuration
 	@echo "$(GREEN)Current Configuration:$(NC)"
 	@echo "  PROJECT_ID: $(PROJECT_ID)"
+	@echo "  CONSUMER_PROJECT_ID: $(CONSUMER_PROJECT_ID)"
 	@echo "  BUCKET_NAME: $(BUCKET_NAME)"
 	@echo "  TOPIC_NAME: $(TOPIC_NAME)"
 	@echo "  REGION: $(REGION)"
+	@echo "  CREATE_CROSS_PROJECT: $(CREATE_CROSS_PROJECT)"
 
 test-infra: terraform-plan ## Test infrastructure configuration without applying
 	@echo "$(GREEN)✓ Infrastructure configuration is valid$(NC)"
+
+# Cross-project specific targets
+cross-project-apply: ## Apply infrastructure with cross-project consumer
+	@if [ -z "$(PROJECT_ID)" ] || [ -z "$(CONSUMER_PROJECT_ID)" ]; then \
+		echo "$(RED)Error: Both PROJECT_ID and CONSUMER_PROJECT_ID must be set$(NC)"; \
+		echo "Usage: make cross-project-apply PROJECT_ID=publisher-project CONSUMER_PROJECT_ID=consumer-project"; \
+		exit 1; \
+	fi
+	@$(MAKE) terraform-apply CREATE_CROSS_PROJECT=true
+
+cross-project-destroy: ## Destroy infrastructure with cross-project consumer
+	@if [ -z "$(PROJECT_ID)" ] || [ -z "$(CONSUMER_PROJECT_ID)" ]; then \
+		echo "$(RED)Error: Both PROJECT_ID and CONSUMER_PROJECT_ID must be set$(NC)"; \
+		echo "Usage: make cross-project-destroy PROJECT_ID=publisher-project CONSUMER_PROJECT_ID=consumer-project"; \
+		exit 1; \
+	fi
+	@$(MAKE) terraform-destroy CREATE_CROSS_PROJECT=true
+
+cross-project-listen: app-build ## Listen for notifications in consumer project
+	@if [ -z "$(PROJECT_ID)" ] || [ -z "$(CONSUMER_PROJECT_ID)" ]; then \
+		echo "$(RED)Error: Both PROJECT_ID and CONSUMER_PROJECT_ID must be set$(NC)"; \
+		echo "Usage: make cross-project-listen PROJECT_ID=publisher-project CONSUMER_PROJECT_ID=consumer-project"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Listening for notifications in consumer project (Press Ctrl+C to stop)...$(NC)"
+	GCP_PROJECT_ID=$(PROJECT_ID) GCP_CONSUMER_PROJECT_ID=$(CONSUMER_PROJECT_ID) \
+	./$(APP_BINARY) \
+		-mode=listen \
+		-bucket=$(BUCKET_NAME) \
+		-topic=$(TOPIC_NAME)
+
+cross-project-test: app-build ## Full cross-project test: create file in publisher, listen in consumer
+	@if [ -z "$(PROJECT_ID)" ] || [ -z "$(CONSUMER_PROJECT_ID)" ]; then \
+		echo "$(RED)Error: Both PROJECT_ID and CONSUMER_PROJECT_ID must be set$(NC)"; \
+		echo "Usage: make cross-project-test PROJECT_ID=publisher-project CONSUMER_PROJECT_ID=consumer-project"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Testing cross-project setup...$(NC)"
+	GCP_PROJECT_ID=$(PROJECT_ID) GCP_CONSUMER_PROJECT_ID=$(CONSUMER_PROJECT_ID) \
+	./$(APP_BINARY) \
+		-mode=both \
+		-bucket=$(BUCKET_NAME) \
+		-topic=$(TOPIC_NAME) \
+		-file=cross-project-test-$(shell date +%s).txt \
+		-content="Cross-project test file created at $(shell date)"
+
+cross-project-demo: check-deps cross-project-apply cross-project-test ## Full cross-project demo
+	@echo "$(GREEN)✓ Cross-project demo completed$(NC)"
+
+cross-project-verify: ## Verify cross-project infrastructure and test connectivity
+	@if [ -z "$(PROJECT_ID)" ] || [ -z "$(CONSUMER_PROJECT_ID)" ]; then \
+		echo "$(RED)Error: Both PROJECT_ID and CONSUMER_PROJECT_ID must be set$(NC)"; \
+		echo "Usage: make cross-project-verify PROJECT_ID=publisher-project CONSUMER_PROJECT_ID=consumer-project"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Running cross-project verification test...$(NC)"
+	@cd $(TERRAFORM_DIR) && ./test-cross-project.sh $(PROJECT_ID) $(CONSUMER_PROJECT_ID) $(BUCKET_NAME) $(TOPIC_NAME)
 

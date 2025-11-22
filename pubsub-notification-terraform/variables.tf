@@ -75,3 +75,15 @@ variable "maximum_backoff" {
   default     = "600s"
 }
 
+variable "consumer_project_id" {
+  description = "The GCP project ID for the consumer (can be different from the publisher project)"
+  type        = string
+  default     = "" # If empty, uses the same project as the publisher
+}
+
+variable "create_cross_project_subscription" {
+  description = "Whether to create a subscription in a different project for cross-project consumption"
+  type        = bool
+  default     = false
+}
+

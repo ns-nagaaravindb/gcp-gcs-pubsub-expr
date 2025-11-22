@@ -2,13 +2,28 @@
 
 This Terraform module creates a GCS bucket with Pub/Sub notifications configured for file creation events.
 
+## ⭐ NEW: Cross-Project Consumer Support
+
+**This module now supports creating Pub/Sub subscriptions in a different GCP project!**
+
+👉 See [CROSS_PROJECT_SETUP.md](./CROSS_PROJECT_SETUP.md) for detailed cross-project setup instructions.
+
+Quick example:
+```bash
+make cross-project-apply \
+  PROJECT_ID=publisher-project \
+  CONSUMER_PROJECT_ID=consumer-project
+```
+
 ## Resources Created
 
 - **GCS Bucket**: `test-dp-gcspubsub-bucket` (configurable)
 - **Pub/Sub Topic**: `test-dp-gcspubsub-bucket` (configurable)
-- **Pub/Sub Subscription**: For consuming messages
+- **Pub/Sub Subscription**: For consuming messages (same project)
+- **Cross-Project Subscription**: Optional subscription in a different project (NEW!)
 - **GCS Notification**: Configured to publish OBJECT_FINALIZE events to the Pub/Sub topic
 - **IAM Permissions**: GCS service account granted Pub/Sub Publisher role
+- **Cross-Project IAM**: Consumer project granted Subscriber role (when enabled)
 
 ## Prerequisites
 
@@ -60,8 +75,35 @@ After applying, the module outputs:
 - `bucket_name`: Name of the created bucket
 - `bucket_url`: URL of the bucket
 - `topic_name`: Name of the Pub/Sub topic
-- `subscription_name`: Name of the subscription
+- `subscription_name`: Name of the subscription (same project)
+- `consumer_subscription_name`: Name of the consumer subscription (cross-project, if enabled)
+- `consumer_project_id`: Consumer project ID
 - `notification_id`: ID of the notification configuration
+
+## Quick Start Examples
+
+### Single Project Setup
+```bash
+# Using Makefile
+make terraform-apply PROJECT_ID=your-project
+
+# Using Terraform directly
+terraform apply -var="project_id=your-project"
+```
+
+### Cross-Project Setup
+```bash
+# Using Makefile
+make cross-project-apply \
+  PROJECT_ID=publisher-project \
+  CONSUMER_PROJECT_ID=consumer-project
+
+# Using Terraform directly
+terraform apply \
+  -var="project_id=publisher-project" \
+  -var="consumer_project_id=consumer-project" \
+  -var="create_cross_project_subscription=true"
+```
 
 ## Authentication
 
