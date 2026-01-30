@@ -1,28 +1,26 @@
-# Local .terraform directories
-**/.terraform/*
-
-# .tfstate files
+# Terraform files
 *.tfstate
 *.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+.terraform/
+.terraform.lock.hcl
+
+# Service account keys - NEVER commit these!
+service-account-key.json
+*-key.json
+*.json
 
 # Crash log files
 crash.log
 crash.*.log
 
-# Exclude all .tfvars files, which might contain sensitive data
-*.tfvars
-*.tfvars.json
-
-# Ignore override files
+# Override files
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
 
-# Ignore CLI configuration files
+# CLI configuration files
 .terraformrc
 terraform.rc
-
-# Ignore lock file (optional, some teams prefer to commit this)
-# .terraform.lock.hcl
-

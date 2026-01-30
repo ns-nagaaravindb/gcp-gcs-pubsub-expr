@@ -326,7 +326,7 @@ func main() {
 		consumerProjectID = flag.String("consumer-project", "", "GCP consumer project ID (if different from publisher)")
 		bucketName        = flag.String("bucket", "test-dp-gcspubsub-bucket", "GCS bucket name")
 		topicName         = flag.String("topic", "test-dp-gcspubsub-bucket", "Pub/Sub topic name")
-		subscriptionName  = flag.String("subscription", "", "Pub/Sub subscription name (defaults to topic-subscription)")
+		subscriptionName  = flag.String("sub", "", "Pub/Sub subscription name (defaults to topic-sub)")
 		mode              = flag.String("mode", "listen", "Mode: 'create', 'listen', or 'both'")
 		fileName          = flag.String("file", "", "File name to create (required for create mode)")
 		fileContent       = flag.String("content", "Hello, World!", "Content for the file")
@@ -353,9 +353,9 @@ func main() {
 	if *subscriptionName == "" {
 		// Use different subscription name if consumer project is different
 		if *consumerProjectID != *projectID {
-			*subscriptionName = fmt.Sprintf("%s-consumer-subscription", *topicName)
+			*subscriptionName = fmt.Sprintf("%s-consumer-sub", *topicName)
 		} else {
-			*subscriptionName = fmt.Sprintf("%s-subscription", *topicName)
+			*subscriptionName = fmt.Sprintf("%s-sub", *topicName)
 		}
 	}
 

@@ -15,6 +15,12 @@ variable "bucket_name" {
   default     = "test-dp-gcspubsub-bucket"
 }
 
+variable "landing_bucket_name" {
+  description = "Name of the GCS landing bucket"
+  type        = string
+  default     = "test-dp-gcspubsub-bucket-landing"
+}
+
 variable "topic_name" {
   description = "Name of the Pub/Sub topic"
   type        = string
@@ -24,7 +30,7 @@ variable "topic_name" {
 variable "force_destroy" {
   description = "When deleting a bucket, this boolean option will delete all contained objects"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_versioning" {
@@ -85,5 +91,23 @@ variable "create_cross_project_subscription" {
   description = "Whether to create a subscription in a different project for cross-project consumption"
   type        = bool
   default     = false
+}
+
+variable "service_account_id" {
+  description = "The account ID for the service account (used for bucket operations)"
+  type        = string
+  default     = "gcs-bucket-operator"
+}
+
+variable "create_service_account_key" {
+  description = "Whether to create a service account key for authentication"
+  type        = bool
+  default     = true
+}
+
+variable "service_account_key_filename" {
+  description = "Filename for the service account key JSON file"
+  type        = string
+  default     = "service-account-key.json"
 }
 

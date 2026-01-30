@@ -37,6 +37,29 @@ resource "google_storage_bucket" "main" {
   labels = var.labels
 }
 
+# GCS Landing Bucket
+resource "google_storage_bucket" "landing" {
+  name                        = var.landing_bucket_name
+  location                    = var.region
+  force_destroy               = true
+  uniform_bucket_level_access = true
+
+  versioning {
+    enabled = var.enable_versioning
+  }
+
+  lifecycle_rule {
+    condition {
+      age = var.lifecycle_age
+    }
+    action {
+      type = "Delete"
+    }
+  }
+
+  labels = var.labels
+}
+
 # Pub/Sub Topic
 resource "google_pubsub_topic" "main" {
   name = var.topic_name
@@ -48,7 +71,7 @@ resource "google_pubsub_topic" "main" {
 
 # Pub/Sub Subscription (for the application to consume messages)
 resource "google_pubsub_subscription" "main" {
-  name  = "${var.topic_name}-subscription"
+  name  = "${var.topic_name}-sub"
   topic = google_pubsub_topic.main.name
 
   ack_deadline_seconds = var.ack_deadline_seconds
@@ -100,7 +123,7 @@ resource "google_pubsub_subscription" "consumer" {
   count    = var.create_cross_project_subscription && var.consumer_project_id != "" ? 1 : 0
   provider = google.consumer
 
-  name  = "${var.topic_name}-consumer-subscription"
+  name  = "${var.topic_name}-consumer-sub"
   topic = google_pubsub_topic.main.id
 
   ack_deadline_seconds = var.ack_deadline_seconds
@@ -131,4 +154,41 @@ data "google_project" "consumer" {
   provider   = google.consumer
   project_id = var.consumer_project_id
 }
+
+# Service Account for bucket operations (upload/download)
+resource "google_service_account" "bucket_operator" {
+  account_id   = var.service_account_id
+  display_name = "GCS Bucket Operator Service Account"
+  description  = "Service account for uploading and downloading files to/from GCS bucket"
+}
+
+# IAM: Grant service account permission to upload files to bucket (objectCreator)
+resource "google_storage_bucket_iam_member" "bucket_operator_creator" {
+  bucket = google_storage_bucket.main.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${google_service_account.bucket_operator.email}"
+}
+
+# IAM: Grant service account permission to download files from bucket (objectViewer)
+resource "google_storage_bucket_iam_member" "bucket_operator_viewer" {
+  bucket = google_storage_bucket.main.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.bucket_operator.email}"
+}
+
+# IAM: Grant service account permission to upload files to landing bucket (objectCreator)
+resource "google_storage_bucket_iam_member" "landing_bucket_operator_creator" {
+  bucket = google_storage_bucket.landing.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${google_service_account.bucket_operator.email}"
+}
+
+# IAM: Grant service account permission to download files from landing bucket (objectViewer)
+resource "google_storage_bucket_iam_member" "landing_bucket_operator_viewer" {
+  bucket = google_storage_bucket.landing.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.bucket_operator.email}"
+}
+
+
 

@@ -18,11 +18,16 @@ make cross-project-apply \
 ## Resources Created
 
 - **GCS Bucket**: `test-dp-gcspubsub-bucket` (configurable)
+- **GCS Landing Bucket**: `test-dp-gcspubsub-bucket-landing` (configurable, NEW!)
 - **Pub/Sub Topic**: `test-dp-gcspubsub-bucket` (configurable)
 - **Pub/Sub Subscription**: For consuming messages (same project)
 - **Cross-Project Subscription**: Optional subscription in a different project (NEW!)
+- **Service Account**: For uploading/downloading files to/from the buckets (NEW!)
+- **Service Account Key**: JSON key for authentication (optional, NEW!)
 - **GCS Notification**: Configured to publish OBJECT_FINALIZE events to the Pub/Sub topic
-- **IAM Permissions**: GCS service account granted Pub/Sub Publisher role
+- **IAM Permissions**: 
+  - GCS service account granted Pub/Sub Publisher role
+  - Bucket operator service account granted Storage Object Creator and Viewer roles (both buckets)
 - **Cross-Project IAM**: Consumer project granted Subscriber role (when enabled)
 
 ## Prerequisites
@@ -74,11 +79,15 @@ See `variables.tf` for all available variables and their descriptions.
 After applying, the module outputs:
 - `bucket_name`: Name of the created bucket
 - `bucket_url`: URL of the bucket
+- `landing_bucket_name`: Name of the created landing bucket (NEW!)
+- `landing_bucket_url`: URL of the landing bucket (NEW!)
 - `topic_name`: Name of the Pub/Sub topic
 - `subscription_name`: Name of the subscription (same project)
 - `consumer_subscription_name`: Name of the consumer subscription (cross-project, if enabled)
 - `consumer_project_id`: Consumer project ID
 - `notification_id`: ID of the notification configuration
+- `service_account_email`: Email of the bucket operator service account (NEW!)
+- `service_account_key_file`: Path to the service account key JSON file (NEW!)
 
 ## Quick Start Examples
 
@@ -120,4 +129,59 @@ gcloud auth application-default login
 - Add monitoring and alerting
 - Use remote state backend (GCS recommended)
 - Enable audit logs
+
+## Using the Service Account
+
+The module creates a service account with permissions to upload and download files to/from the GCS bucket.
+
+### Authenticate using the service account key:
+
+```bash
+# Set the environment variable
+export GOOGLE_APPLICATION_CREDENTIALS="./service-account-key.json"
+
+# Or use gcloud
+gcloud auth activate-service-account --key-file=./service-account-key.json
+```
+
+### Upload a file to the bucket:
+
+```bash
+# Using gsutil - upload to main bucket
+gsutil cp myfile.txt gs://your-bucket-name/
+
+# Using gsutil - upload to landing bucket
+gsutil cp myfile.txt gs://your-bucket-name-landing/
+
+# Using gcloud - upload to main bucket
+gcloud storage cp myfile.txt gs://your-bucket-name/
+
+# Using gcloud - upload to landing bucket
+gcloud storage cp myfile.txt gs://your-bucket-name-landing/
+```
+
+### Download a file from the bucket:
+
+```bash
+# Using gsutil - download from main bucket
+gsutil cp gs://your-bucket-name/myfile.txt ./
+
+# Using gsutil - download from landing bucket
+gsutil cp gs://your-bucket-name-landing/myfile.txt ./
+
+# Using gcloud - download from main bucket
+gcloud storage cp gs://your-bucket-name/myfile.txt ./
+
+# Using gcloud - download from landing bucket
+gcloud storage cp gs://your-bucket-name-landing/myfile.txt ./
+```
+
+### Security Note:
+
+**⚠️ IMPORTANT**: The service account key (`service-account-key.json`) contains sensitive credentials. 
+- Never commit this file to version control (it's already in `.gitignore`)
+- Store it securely (use secret management tools in production)
+- Rotate keys regularly
+- Use Workload Identity or other keyless authentication methods when possible
+- Set `create_service_account_key = false` if you prefer to manage keys separately
 

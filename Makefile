@@ -3,15 +3,16 @@
 	check-deps check-gcloud check-terraform check-go
 
 # Configuration
-PROJECT_ID ?= $(shell gcloud config get-value project 2>/dev/null)
-CONSUMER_PROJECT_ID ?= compute-k8s-qe
-BUCKET_NAME ?= test-dp-gcspubsub-bucket
-TOPIC_NAME ?= test-dp-gcspubsub-bucket
+PROJECT_ID ?= data-qe
+CONSUMER_PROJECT_ID ?= data-qe
+BUCKET_NAME ?=  ns-nonprod-eng-data-pipeline-ef-events-us-central1-dev
+LANDING_BUCKET_NAME ?= ns-nonprod-eng-data-pipeline-events-us-central1-dev
+TOPIC_NAME ?= ns-nonprod-eng-data-pipeline-ef-events-us-central1-dev-notify
 REGION ?= us-central1
 TERRAFORM_DIR = pubsub-notification-terraform
 APP_DIR = app
 APP_BINARY = gcs-pubsub-app
-CREATE_CROSS_PROJECT ?= true
+CREATE_CROSS_PROJECT ?= false
 
 # Colors for output
 GREEN = \033[0;32m
@@ -55,6 +56,7 @@ terraform-plan: terraform-init ## Plan Terraform changes
 			-var="project_id=$(PROJECT_ID)" \
 			-var="region=$(REGION)" \
 			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="landing_bucket_name=$(LANDING_BUCKET_NAME)" \
 			-var="topic_name=$(TOPIC_NAME)" \
 			-var="consumer_project_id=$(CONSUMER_PROJECT_ID)" \
 			-var="create_cross_project_subscription=true"; \
@@ -63,6 +65,7 @@ terraform-plan: terraform-init ## Plan Terraform changes
 			-var="project_id=$(PROJECT_ID)" \
 			-var="region=$(REGION)" \
 			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="landing_bucket_name=$(LANDING_BUCKET_NAME)" \
 			-var="topic_name=$(TOPIC_NAME)"; \
 	fi
 
@@ -78,6 +81,7 @@ terraform-apply: terraform-init ## Apply Terraform configuration
 			-var="project_id=$(PROJECT_ID)" \
 			-var="region=$(REGION)" \
 			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="landing_bucket_name=$(LANDING_BUCKET_NAME)" \
 			-var="topic_name=$(TOPIC_NAME)" \
 			-var="consumer_project_id=$(CONSUMER_PROJECT_ID)" \
 			-var="create_cross_project_subscription=true" \
@@ -87,6 +91,7 @@ terraform-apply: terraform-init ## Apply Terraform configuration
 			-var="project_id=$(PROJECT_ID)" \
 			-var="region=$(REGION)" \
 			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="landing_bucket_name=$(LANDING_BUCKET_NAME)" \
 			-var="topic_name=$(TOPIC_NAME)" \
 			-auto-approve; \
 	fi
@@ -103,6 +108,7 @@ terraform-destroy: terraform-init ## Destroy Terraform infrastructure
 			-var="project_id=$(PROJECT_ID)" \
 			-var="region=$(REGION)" \
 			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="landing_bucket_name=$(LANDING_BUCKET_NAME)" \
 			-var="topic_name=$(TOPIC_NAME)" \
 			-var="consumer_project_id=$(CONSUMER_PROJECT_ID)" \
 			-var="create_cross_project_subscription=true" \
@@ -112,6 +118,7 @@ terraform-destroy: terraform-init ## Destroy Terraform infrastructure
 			-var="project_id=$(PROJECT_ID)" \
 			-var="region=$(REGION)" \
 			-var="bucket_name=$(BUCKET_NAME)" \
+			-var="landing_bucket_name=$(LANDING_BUCKET_NAME)" \
 			-var="topic_name=$(TOPIC_NAME)" \
 			-auto-approve; \
 	fi
@@ -208,6 +215,7 @@ info: ## Show current configuration
 	@echo "  PROJECT_ID: $(PROJECT_ID)"
 	@echo "  CONSUMER_PROJECT_ID: $(CONSUMER_PROJECT_ID)"
 	@echo "  BUCKET_NAME: $(BUCKET_NAME)"
+	@echo "  LANDING_BUCKET_NAME: $(LANDING_BUCKET_NAME)"
 	@echo "  TOPIC_NAME: $(TOPIC_NAME)"
 	@echo "  REGION: $(REGION)"
 	@echo "  CREATE_CROSS_PROJECT: $(CREATE_CROSS_PROJECT)"

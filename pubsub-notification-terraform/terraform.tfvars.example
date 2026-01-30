@@ -3,6 +3,7 @@ region     = "us-central1"
 
 # Optional: Override defaults
 # bucket_name = "test-dp-gcspubsub-bucket"
+# landing_bucket_name = "test-dp-gcspubsub-bucket-landing"
 # topic_name  = "test-dp-gcspubsub-bucket"
 # force_destroy = false
 # enable_versioning = false
@@ -16,4 +17,9 @@ labels = {
 # Enable this to create a subscription in a different project
 # create_cross_project_subscription = true
 # consumer_project_id = "your-consumer-project-id"
+
+# Service Account configuration
+# service_account_id = "gcs-bucket-operator"
+# create_service_account_key = true
+# service_account_key_filename = "service-account-key.json"
 
